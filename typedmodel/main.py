@@ -14,3 +14,5 @@ if __name__ == "__main__":
     test_images = load_images(foldername='data/fixed_formula_images/', filenames=image_names)
 
     model_config()
+
+    #training here
