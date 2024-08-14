@@ -1,13 +1,65 @@
 #imports
 import tensorflow as tf
-from tensorflow.keras import datasets, layers, models
 
 #initlaize model config
 
-def model_config(train_images, test_images, train_formulas, test_formulas):
-    train_images, test_images = train_images / 255.0, test_images / 255.0
+class ResNetBlock:
+    def __init__(self, out_channels):
+        self.conv_seq  = tf.keras.Sequential([
+            tf.keras.layers.Conv2D(
+                filters=out_channels, 
+                kernel_size=(3, 3), 
+                padding='same', 
+                input_shape=(250, 500, 2)
+            ),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Activation('relu'),
+            tf.keras.layers.Conv2D(
+                filters=out_channels, 
+                kernel_size=(3, 3), 
+                padding='same', 
+                input_shape=(250, 500, 2)
+            ),
+            tf.keras.layers.BatchNormalization()
+        ])
 
+        self.extrapass = tf.keras.Sequential([
+            tf.keras.layers.Activation('relu')
+        ])
+    
+    def call(self, inputs)
+        x = self.conv_seq(inputs)
+
+        #skip connect
+        if x.shape == inputs.shape:
+            x = x + inputs
+
+        return self.extrapass(x)
+
+class ResNetModel:
+    def __init__(self):
+        super(ResNetModel, self).__init__()
+
+        self.begginer = tf.keras.Sequential([
+            tf.keras.layers.Conv2D(
+                filters=64,
+                kernel_size=(3, 3),
+                padding="same",
+                input_shape=(250, 500, 2)
+            ),
+            tf.keras.layers.Activation('relu')
+        ]
+
+        self.blocks = tf.keras.Sequential([
+            ResNetBlock(64),
+            ResNetBlock(64)
+
+            #do i add 2 conv 3 b 3 for one block. 2 blocks in one block ResNet-18
+        ])
+
+def model_config(train_images, test_images, train_formulas, test_formulas):
     # go up to block 3
-    model = models.Sequential()
-    model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(250, 500, 2)))
-    model.add(layers.MaxPooling2D((2, 2)))
+    print("not done yet")
+    
+
+    
