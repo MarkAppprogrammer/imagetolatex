@@ -1,68 +1,91 @@
-#imports
 import tensorflow as tf
 
-#initlaize model config
+class ResNetBlock(tf.keras.layers.Layer):
+    def __init__(self, out_channels, stride=1, downsample=False):
+        self.downsample = downsample
+        
+        self.conv1 = tf.keras.layers.Conv2D(
+            filters=out_channels,
+            kernel_size=(3, 3),
+            strides=(stride, stride),
+            padding='same',
+            use_bias=False
+        )
+        self.b1 = tf.keras.layers.BatchNormalization()
+        self.relu = tf.keras.layers.Activation('relu')
+        
+        self.conv2 = tf.keras.layers.Conv2D(
+            filters=out_channels,
+            kernel_size=(3, 3),
+            padding='same',
+            use_bias=False
+        )
+        self.b2 = tf.keras.layers.BatchNormalization()
 
-class ResNetBlock:
-    def __init__(self, out_channels):
-        self.conv_seq  = tf.keras.Sequential([
-            tf.keras.layers.Conv2D(
-                filters=out_channels, 
-                kernel_size=(3, 3), 
-                padding='same', 
-                input_shape=(250, 500, 2)
-            ),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('relu'),
-            tf.keras.layers.Conv2D(
-                filters=out_channels, 
-                kernel_size=(3, 3), 
-                padding='same', 
-                input_shape=(250, 500, 2)
-            ),
-            tf.keras.layers.BatchNormalization()
-        ])
+        if self.downsample:
+            self.downsample_layer = tf.keras.Sequential([
+                tf.keras.layers.Conv2D(
+                    filters=out_channels,
+                    kernel_size=(1, 1),
+                    strides=(stride, stride),
+                    padding='same',
+                    use_bias=False
+                ),
+                tf.keras.layers.BatchNormalization()
+            ])
+        else:
+            self.downsample_layer = lambda x: x  # Identity function if no downsampling
 
-        self.extrapass = tf.keras.Sequential([
-            tf.keras.layers.Activation('relu')
-        ])
-    
     def call(self, inputs):
-        x = self.conv_seq(inputs)
+        shortcut = self.downsample_layer(inputs)
+        
+        x = self.conv1(inputs)
+        x = self.b1(x)
+        x = self.relu(x)
+        
+        x = self.conv2(x)
+        x = self.b2(x)
+        
+        x += shortcut
+        x = self.relu(x)
+        
+        return x
 
-        #skip connect
-        #add stuff to fix dimensions
-        if x.shape == inputs.shape:
-            x = x + inputs
-
-        return self.extrapass(x)
-
-class ResNetModel:
+class ResNetModel(tf.keras.Model):
     def __init__(self):
-        super(ResNetModel, self).__init__()
-
         self.begginer = tf.keras.Sequential([
             tf.keras.layers.Conv2D(
                 filters=64,
                 kernel_size=(7, 7),
                 padding="same",
-                input_shape=(250, 500, 2),
-                strides=(2,2)
+                strides=(2, 2),
+                use_bias=False,
+                input_shape=(250, 500, 2)
             ),
+            tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Activation('relu'),
-            tf.keras.layers.GlobalMaxPool2D(data_format="channels_last")
+            tf.keras.layers.MaxPooling2D(
+                pool_size=(3, 3),
+                strides=(2, 2),
+                padding="same"
+            )
         ])
+        
+        self.block1 = ResNetBlock(64)
+        self.block2 = ResNetBlock(128, stride=2, downsample=True)
+        self.block3 = ResNetBlock(256, stride=2, downsample=True)
+        
+    def call(self, inputs):
+        x = self.begginer(inputs)
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.block3(x)
+        return x
 
-        self.blocks = tf.keras.Sequential([
-            ResNetBlock(64),
-            ResNetBlock(64)
+    def model_config():
+        model = ResNetModel()
+        model.build((250, 500, 2))  
+        model.summary()
 
-            #3 blocks now change of dimensions
-        ])
+        return model
 
-def model_config(train_images, test_images, train_formulas, test_formulas):
-    # go up to block 3
-    print("not done yet")
-    
-
-    
